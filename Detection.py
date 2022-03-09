@@ -45,13 +45,12 @@ class PersonDetector:
         return img, bboxs
 
 
-class Yolo_detctor:
+class YOLODetector:
     def __init__(self, config_file, whightes_file):
         self.net = cv2.dnn.readNetFromDarknet(config_file, whightes_file)
         self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
         self.ln = self.net.getLayerNames()
         self.ln = [self.ln[i - 1] for i in self.net.getUnconnectedOutLayers()]
-
 
     def detect(self, img, prob=.5):
         H, W = img.shape[:2]
@@ -60,8 +59,8 @@ class Yolo_detctor:
         outputs = self.net.forward(self.ln)
         outputs = np.vstack(outputs)
         outputs = outputs[:, :6]
-        outputs = outputs[np.where(outputs[:, 5]>prob)]
-        if outputs.shape[0] !=0:
+        outputs = outputs[np.where(outputs[:, 5] > prob)]
+        if outputs.shape[0] != 0:
             outputs = outputs[np.argmax(outputs[:, 5])]
         outputs = outputs.reshape((-1, 6))
         outputs[:, 0:4] *= np.array([W, H, W, H])
