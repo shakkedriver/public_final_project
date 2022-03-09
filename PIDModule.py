@@ -14,8 +14,6 @@ class PID:
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
-
-        self.pidVals = [self.Kp, self.Ki, self.Kd]
         self.targetVal = targetVal
         self.pError = 0
         self.limit = limit
@@ -30,9 +28,9 @@ class PID:
         """
         t = time.time() - self.pTime
         error = cVal - self.targetVal
-        P = self.pidVals[0] * error
-        self.I = self.I + (self.pidVals[1] * error * t)
-        D = (self.pidVals[2] * (error - self.pError)) / t
+        P = self.Kp * error
+        self.I = self.I + (self.Ki * error * (t-self.pTime))
+        D = (self.Kd * (error - self.pError)) / t
 
         result = P + self.I + D
 
