@@ -3,7 +3,6 @@ import time
 from datetime import datetime
 import Detection
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 from djitellopy import tello
 
@@ -18,7 +17,7 @@ class Drone(tello.Tello):
 
     class VideoSaver:
         """
-        this a loacal class that deals with saving videos from  the frames_receiver of the drone and storing them
+        this a local class that deals with saving videos from  the frames_receiver of the drone and storing them
         """
 
         def __init__(self, drone):
@@ -45,9 +44,39 @@ class Drone(tello.Tello):
                 cv2.imshow("Image", img)
                 self.video_writer.write(img)
 
+    def __init__(self):
+        """
+        calls the super constructor and runs the code needed for use of the object
+        """
+
+        self.BUFFER_SIZE = 10000
+
+        # connecting to Tello
+        super().__init__(retry_count=6)
+        self.connect()
+        print(self.get_battery())
+        self.streamoff()
+        self.streamon()
+
+        # synchronization
+        self.buffer_mutex = threading.RLock()  # only one thread can access the buffer
+        self.fillCount = threading.Semaphore(0)  # counts how many frames are in the buffer
+        self.emptyCount = threading.Semaphore(self.BUFFER_SIZE)  # prevents threads from accessing the buffer when
+
+        # initializing different classes
+        self.frames_receiver = self.FramesReceiver(self)
+        self.video_saver = self.VideoSaver(self)
+        self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
+
+        # initializing threads
+        self.saver_thread = threading.Thread(target=self.video_saver.create_video_loop, name='saver_thread')
+        self.saver_thread.start()
+        self.receiver_thread = threading.Thread(target=self.frames_receiver.readframes, name='receiver_thread')
+        self.receiver_thread.start()
+
     class FramesReceiver:
         """
-        this class receives frames from the drone and stord them in a array
+        this class receives frames from the drone and stored them in a array
         """
 
         def __init__(self, drone):
@@ -56,29 +85,29 @@ class Drone(tello.Tello):
             :param drone: the drone
             """
             self.drone = drone
-            self.images_array = []
+            self.image_buffer = []
             self.VideoCap = self.drone.get_video_capture()
 
         def readframes(self):
             """
-            runs in a loop and reads new frmaes from the drone. this function should be called in a new thread
+            runs in a loop and reads new frames from the drone. this function should be called in a new thread
             :return: None
             """
             while True:
                 ret, img = self.VideoCap.read()
-                img = cv2.resize(img, FRME_Shape)
                 if ret:
+                    img = cv2.resize(img, FRME_Shape)
                     self.drone.emptyCount.acquire()
                     self.drone.buffer_mutex.acquire()
 
-                    self.images_array.append(img)
+                    self.image_buffer.append(img)
 
                     self.drone.buffer_mutex.release()
                     self.drone.fillCount.release()
 
         def getFrame(self, consume=True):
             """
-            allow reading from the array buffer safly if consume is true we would pop the beginninggunig of the buffer
+            allow reading from the array buffer safely if consume is true we would pop the beginning of the buffer
             else we would just read the last frame
             :param consume:
             :return:
@@ -86,37 +115,15 @@ class Drone(tello.Tello):
             if consume:
                 self.drone.fillCount.acquire()
                 self.drone.buffer_mutex.acquire()
-                img = self.images_array.pop(0)
+                img = self.image_buffer.pop(0)
                 self.drone.buffer_mutex.release()
                 self.drone.emptyCount.release()
                 return img
             else:
                 self.drone.buffer_mutex.acquire()
-                img = self.images_array[-1]
+                img = self.image_buffer[-1]
                 self.drone.buffer_mutex.release()
                 return img.copy()
-
-    def __init__(self):
-        """
-        calls the super constructor and runs the code needed for use of the object
-        """
-
-        self.BUFFER_SIZE = 10000
-        super().__init__(retry_count=6)
-        self.connect()
-        print(self.get_battery())
-        self.streamoff()
-        self.streamon()
-        self.buffer_mutex = threading.RLock()
-        self.fillCount = threading.Semaphore(0)
-        self.emptyCount = threading.Semaphore(self.BUFFER_SIZE)
-        self.frames_receiver = self.FramesReceiver(self)
-        self.video_saver = self.VideoSaver(self)
-        self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
-        self.saver_thread = threading.Thread(target=self.video_saver.create_video_loop, name='saver_thread')
-        self.saver_thread.start()
-        self.receiver_thread = threading.Thread(target=self.frames_receiver.readframes, name='receiver_thread')
-        self.receiver_thread.start()
 
     def polygon(self, num_corners: int, radius_in_cm):
         """
@@ -128,6 +135,9 @@ class Drone(tello.Tello):
         for i in range(num_corners):
             self.rotate_clockwise(int(360 / num_corners))
             self.move_left(abs(int(radius_in_cm * np.sin(360 / num_corners) * 2)))
+
+    def getFrame(self):
+        return self.frames_receiver.getFrame(consume=False)
 
 
 if __name__ == "__main__":

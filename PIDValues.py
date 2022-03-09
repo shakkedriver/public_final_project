@@ -11,6 +11,7 @@ zPID = PIDModule.PID(0.003, 0, 0.003, 12000, limit=[-20, 15])  # forward and bac
 
 drone = Drone()
 detector = drone.detector
+
 while True:
     img = drone.getFrame()
     img, objects = detector.center_detect(img)
