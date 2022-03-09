@@ -112,7 +112,7 @@ class Drone(tello.Tello):
         self.emptyCount = threading.Semaphore(self.BUFFER_SIZE)
         self.frames_receiver = self.FramesReceiver(self)
         self.video_saver = self.VideoSaver(self)
-        self.yolo = Detection.PersonDetector("yolov3.cfg", "yolov3.weights")
+        self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
         self.saver_thread = threading.Thread(target=self.video_saver.create_video_loop, name='saver_thread')
         self.saver_thread.start()
         self.receiver_thread = threading.Thread(target=self.frames_receiver.readframes, name='receiver_thread')

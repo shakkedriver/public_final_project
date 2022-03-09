@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-class PersonDetector:
+class ObjectsDetector:
     def __init__(self, config_file, weights_file):
         self.net = cv2.dnn.readNetFromDarknet(config_file, weights_file)
         self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)

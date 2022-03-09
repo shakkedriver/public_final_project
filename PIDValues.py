@@ -1,8 +1,6 @@
-import Drone
+from Drone import Drone
 import PIDModule
-import Detection
 
-detector = Detection.ObjectsDetector('')
 
 hi, wi, = 480, 640
 
@@ -11,7 +9,8 @@ xPID = PIDModule.PID(0.22, 0, 0.1, wi // 2)  # x direction
 yPID = PIDModule.PID(0.27, 0, 0.1, hi // 2)  # height
 zPID = PIDModule.PID(0.003, 0, 0.003, 12000, limit=[-20, 15])  # forward and backwards
 
-drone = Drone.Drone()
+drone = Drone()
+detector = drone.detector
 while True:
     img = drone.getFrame()
     img, objects = detector.center_detect(img)
