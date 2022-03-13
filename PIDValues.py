@@ -4,7 +4,7 @@ from Drone import FRME_Shape
 
 if __name__ == '__main__':
 
-    # hi, wi, = 480, 640
+    hi, wi, = 480, 640
 
     #                      P   I  D
     xPID = PIDModule.PID(0.33, 0, 0, FRME_Shape[0] // 2)  # x direction
