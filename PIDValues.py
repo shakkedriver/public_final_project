@@ -1,13 +1,14 @@
 from Drone import Drone
 import PIDModule
+from Drone import FRME_Shape
 
 if __name__ == '__main__':
 
-    hi, wi, = 480, 640
+    # hi, wi, = 480, 640
 
     #                      P   I  D
-    xPID = PIDModule.PID(0.22, 0, 0.1, wi // 2)  # x direction
-    yPID = PIDModule.PID(0.27, 0, 0.1, hi // 2)  # height
+    xPID = PIDModule.PID(0.33, 0, 0, FRME_Shape[0] // 2)  # x direction
+    yPID = PIDModule.PID(0.27, 0, 0.1, FRME_Shape[1] // 2)  # height
     zPID = PIDModule.PID(0.003, 0, 0.003, 12000, limit=[-20, 15])  # forward and backwards
 
     drone = Drone()
@@ -29,5 +30,5 @@ if __name__ == '__main__':
             yVal = int(yPID.update(cy))
             zVal = int(zPID.update(int(area)))
         # drone.send_rc_control(0, - zVal, -yVal, xVal)
-        drone.send_rc_control(0, 0, 0, -xVal)
+        drone.send_rc_control(0, 0, 0, xVal)
 
