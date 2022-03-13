@@ -147,7 +147,7 @@ if __name__ == "__main__":
     time.sleep(40)
 
     myDrone.takeoff()
-    myDrone.move_up(300)
+    # myDrone.move_up()
     time.sleep(1)
     myDrone.polygon(12, 200)
     myDrone.send_rc_control(0, 0, 0, 0)

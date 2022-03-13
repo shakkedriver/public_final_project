@@ -45,3 +45,13 @@ class ObjectsDetector:
             bboxInfo = {"area": area, "bbox": bbox, "center": (cx, cy)}
             bboxs.append(bboxInfo)
         return img, bboxs
+
+    def find_nearest(self, objects):
+        """
+
+        :param objects:'numpy.ndarray' of [x,y,w,h,cx,cy,area]
+        :return: img, nearest objects
+        """
+        if objects != ():
+            return objects[np.argmax(objects[:, 6])]
+        return objects
