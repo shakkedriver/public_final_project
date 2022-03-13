@@ -120,9 +120,11 @@ class Drone(tello.Tello):
                 self.drone.emptyCount.release()
                 return img
             else:
+                self.drone.fillCount.acquire()
                 self.drone.buffer_mutex.acquire()
                 img = self.image_buffer[-1]
                 self.drone.buffer_mutex.release()
+                self.drone.fillCount.release()
                 return img.copy()
 
     def polygon(self, num_corners: int, radius_in_cm):
