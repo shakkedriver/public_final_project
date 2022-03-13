@@ -152,4 +152,3 @@ if __name__ == "__main__":
     myDrone.land()
 
     time.sleep(10)
-
