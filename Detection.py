@@ -39,37 +39,4 @@ class ObjectsDetector:
             y = person[0][1]
             w = person[0][2]
             h = person[0][3]
-            # x = person[0]
-            # y = person[1]
-            # w = person[2]
-            # h = person[3]
-            return [x, y, w, h, (x + w / 2), (y + h / 2), (w * h)]
-
-    # def center_detect(self, img):
-    #     """
-    #     Find people in an image and return the bbox info
-    #     :param img: Image to find the people in.
-    #     :return: Image, Bounding Box list.
-    #     """
-    #     people = self.detect(img)
-    #     bboxs = []
-    #     for (x, y, w, h) in people:
-    #         bboxs = [x, y, w, h]
-    #         cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-    #         # the center point and the area
-    #         bbox = [x, y, w, h]
-    #         cx = x + w / 2
-    #         cy = y + h / 2
-    #         area = w * h
-    #         bboxInfo = {"area": area, "bbox": bbox, "center": (cx, cy)}
-    #         bboxs.append(bboxInfo)
-    #     return img, bboxs
-
-    # def find_nearest(self, objects):
-    #     """
-    #     :param objects:'numpy.ndarray' of [x,y,w,h,cx,cy,area]
-    #     :return: img, nearest objects
-    #     """
-    #     if objects==():
-    #         return objects[np.argmax(objects[:, 6])]
-    #     return objects
+            return [x, y, w, h, (x + w / 2), (y + h / 2), (w * h)]  # TODO maybe without returning x, y, w, h?

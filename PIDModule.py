@@ -2,8 +2,6 @@ import numpy as np
 import time
 
 
-
-
 class PID:
     def __init__(self, Kp, Ki, Kd, targetVal, limit=None):
         """
@@ -30,7 +28,7 @@ class PID:
         t = time.time() - self.pTime
         error = cVal - self.targetVal
         P = self.Kp * error
-        self.I = self.I + (self.Ki * error * (t-self.pTime))
+        self.I = self.I + (self.Ki * error * (t - self.pTime))
         D = (self.Kd * (error - self.pError)) / t
 
         result = P + self.I + D

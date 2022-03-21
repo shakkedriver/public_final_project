@@ -5,9 +5,9 @@ import Detection
 import cv2
 import numpy as np
 from djitellopy import tello
+import Tracker
+import Consten
 
-
-FRME_Shape = (400, 300)
 now = datetime.now()
 
 
@@ -15,35 +15,6 @@ class Drone(tello.Tello):
     """
     this is a drone class we inherit from the tello.Tello class and added data and functionality to our needs
     """
-
-    class VideoSaver:
-        """
-        this a local class that deals with saving videos from  the frames_receiver of the drone and storing them
-        """
-
-        def __init__(self, drone):
-            """
-            gets the drone object for the class and creates all the objects necessary for saving a video
-            :param drone: the drone
-            """
-            self.drone = drone
-            self.video_writer = cv2.VideoWriter(f'{now.strftime("%H:%M:%S")}.avi',
-                                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, FRME_Shape)
-
-        def create_video_loop(self):
-            """
-            reads from the array in a loop and saves the video when q is pressed video would be saved. this function is called with a new thread
-            :return:
-            """
-            while True:
-                img = self.drone.frames_receiver.getFrame()
-                if cv2.waitKey(5) & 0xFF == ord('q'):
-                    self.drone.land()
-                    self.video_writer.release()
-                    cv2.destroyAllWindows()
-                    break
-                cv2.imshow("Image", img)
-                self.video_writer.write(img)
 
     def __init__(self):
         """
@@ -68,6 +39,11 @@ class Drone(tello.Tello):
         self.frames_receiver = self.FramesReceiver(self)
         self.video_saver = self.VideoSaver(self)
         self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
+
+        # initializing Tracker
+        self.tracker = Tracker.ObjectTracking((0.25, 0, 0, Consten.FRAME_SHAPE[0] // 2),
+                                              (1, 0, 0.1, Consten.FRAME_SHAPE[1] // 1.9),
+                                              (200, 0, 0, 0.25))
 
         # initializing threads
         self.saver_thread = threading.Thread(target=self.video_saver.create_video_loop, name='saver_thread')
@@ -97,7 +73,7 @@ class Drone(tello.Tello):
             while True:
                 ret, img = self.VideoCap.read()
                 if ret:
-                    img = cv2.resize(img, FRME_Shape)
+                    img = cv2.resize(img, Consten.FRAME_SHAPE)
                     self.drone.emptyCount.acquire()
                     self.drone.buffer_mutex.acquire()
 
@@ -128,6 +104,35 @@ class Drone(tello.Tello):
                 self.drone.fillCount.release()
                 return img.copy()
 
+    class VideoSaver:
+        """
+        this a local class that deals with saving videos from  the frames_receiver of the drone and storing them
+        """
+
+        def __init__(self, drone):
+            """
+            gets the drone object for the class and creates all the objects necessary for saving a video
+            :param drone: the drone
+            """
+            self.drone = drone
+            self.video_writer = cv2.VideoWriter(f'{now.strftime("%H:%M:%S")}.avi',
+                                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, Consten.FRAME_SHAPE)
+
+        def create_video_loop(self):
+            """
+            reads from the array in a loop and saves the video when q is pressed video would be saved. this function is called with a new thread
+            :return:
+            """
+            while True:
+                img = self.drone.frames_receiver.getFrame()
+                if cv2.waitKey(5) & 0xFF == ord('q'):
+                    self.drone.land()
+                    self.video_writer.release()
+                    cv2.destroyAllWindows()
+                    break
+                cv2.imshow("Image", img)
+                self.video_writer.write(img)
+
     def polygon(self, num_corners: int, radius_in_cm):
         """
         move the drone in a Regular polygon shape while facing to the center of the polygon
@@ -142,16 +147,8 @@ class Drone(tello.Tello):
     def getFrame(self):
         return self.frames_receiver.getFrame(consume=False)
 
-
-if __name__ == "__main__":
-    myDrone = Drone()
-    time.sleep(40)
-
-    myDrone.takeoff()
-    # myDrone.move_up()
-    time.sleep(1)
-    myDrone.polygon(12, 200)
-    myDrone.send_rc_control(0, 0, 0, 0)
-    myDrone.land()
-
-    time.sleep(10)
+    def track(self):
+        bbox = self.detector.find_center(self.getFrame())
+        xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
+        while True:
+            self.send_rc_control(0, -zVal, -yVal, xVal)
