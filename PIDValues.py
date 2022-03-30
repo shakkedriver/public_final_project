@@ -1,6 +1,5 @@
 from Drone import Drone
 import PIDModule
-from Drone import FRME_Shape
 
 if __name__ == '__main__':
 

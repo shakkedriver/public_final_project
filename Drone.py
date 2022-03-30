@@ -1,4 +1,5 @@
 import threading
+import multiprocessing
 import time
 from datetime import datetime
 import Detection
@@ -6,7 +7,7 @@ import cv2
 import numpy as np
 from djitellopy import tello
 import Tracker
-import Consten
+import constants
 
 now = datetime.now()
 
@@ -41,8 +42,8 @@ class Drone(tello.Tello):
         self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
 
         # initializing Tracker
-        self.tracker = Tracker.ObjectTracking((0.25, 0, 0, Consten.FRAME_SHAPE[0] // 2),
-                                              (1, 0, 0.1, Consten.FRAME_SHAPE[1] // 1.9),
+        self.tracker = Tracker.ObjectTracking((0.25, 0, 0, constants.FRAME_SHAPE[0] // 2),
+                                              (1, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
                                               (200, 0, 0, 0.25))
 
         # initializing threads
@@ -73,7 +74,7 @@ class Drone(tello.Tello):
             while True:
                 ret, img = self.VideoCap.read()
                 if ret:
-                    img = cv2.resize(img, Consten.FRAME_SHAPE)
+                    img = cv2.resize(img, constants.FRAME_SHAPE)
                     self.drone.emptyCount.acquire()
                     self.drone.buffer_mutex.acquire()
 
@@ -116,7 +117,7 @@ class Drone(tello.Tello):
             """
             self.drone = drone
             self.video_writer = cv2.VideoWriter(f'{now.strftime("%H:%M:%S")}.avi',
-                                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, Consten.FRAME_SHAPE)
+                                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, constants.FRAME_SHAPE)
 
         def create_video_loop(self):
             """
@@ -145,10 +146,16 @@ class Drone(tello.Tello):
             self.move_left(abs(int(radius_in_cm * np.sin(360 / num_corners) * 2)))
 
     def getFrame(self):
+        """
+        gets the latest image received from the drone
+        """
         return self.frames_receiver.getFrame(consume=False)
 
     def track(self):
-        bbox = self.detector.find_center(self.getFrame())
-        xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
+        """
+
+        """
         while True:
+            bbox = self.detector.find_center(self.getFrame())
+            xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
             self.send_rc_control(0, -zVal, -yVal, xVal)

@@ -1,5 +1,5 @@
 from PIDModule import PID
-import Consten
+import constants
 
 class ObjectTracking:
     def __init__(self, pid_values_x, pid_values_y, pid_values_z):
@@ -29,7 +29,7 @@ class ObjectTracking:
         zVal = 0
         if bbox:
             [x, y, w, h, cx, cy, area] = bbox
-            z_ratio = area / Consten.FRAME_SIZE
+            z_ratio = area / constants.FRAME_SIZE
             cx, cy = int(cx), int(cy)
             xVal = int(self.xPID.update(cx))
             yVal = int(self.yPID.update(cy))
