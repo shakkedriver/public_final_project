@@ -131,7 +131,7 @@ class Drone(tello.Tello):
                     self.video_writer.release()
                     cv2.destroyAllWindows()
                     break
-                cv2.imshow("Image", img)
+                # cv2.imshow("Image", img)
                 self.video_writer.write(img)
 
     def polygon(self, num_corners: int, radius_in_cm):
@@ -172,10 +172,10 @@ def dice_coefficient(bounding_box1, bounding_box2):
     x_inteval2 = [bounding_box2[0], bounding_box2[0] + bounding_box2[2]]
     y_inteval1 = [bounding_box1[1], bounding_box1[1] + bounding_box1[3]]
     y_inteval2 = [bounding_box2[1], bounding_box2[1] + bounding_box2[3]]
-    overlap_area = get_overlap_interval(x_inteval1,x_inteval2)*get_overlap_interval(y_inteval1,y_inteval2)
-    bb1_area = bounding_box1[2]*bounding_box1[3]
+    overlap_area = get_overlap_interval(x_inteval1, x_inteval2) * get_overlap_interval(y_inteval1, y_inteval2)
+    bb1_area = bounding_box1[2] * bounding_box1[3]
     bb2_area = bounding_box2[2] * bounding_box2[3]
-    return 2*overlap_area/(bb1_area+bb2_area)
+    return 2 * overlap_area / (bb1_area + bb2_area)
 
 
 def get_overlap_interval(interval1, interval2):
@@ -216,17 +216,20 @@ def test_ovelap():
     inter2 = [91, 240]
     assert get_overlap_interval(inter1, inter2) == 0
     assert get_overlap_interval(inter2, inter1) == 0
+
+
 def test_dice():
-    bb1 = [100,100,50,50]
-    bb2 = [125,125,50,50]
-    assert dice_coefficient(bb1,bb2) == 2*(25**2)/5000
+    bb1 = [100, 100, 50, 50]
+    bb2 = [125, 125, 50, 50]
+    assert dice_coefficient(bb1, bb2) == 2 * (25 ** 2) / 5000
     assert dice_coefficient(bb2, bb1) == 2 * (25 ** 2) / 5000
     assert dice_coefficient(bb1, bb1) == 1
     bb2 = [0, 0, 50, 50]
     assert dice_coefficient(bb1, bb2) == 0
     assert dice_coefficient(bb2, bb1) == 0
     bb2 = [125, 125, 10, 10]
-    assert dice_coefficient(bb2, bb1) == 2 * (10** 2) / 2600
+    assert dice_coefficient(bb2, bb1) == 2 * (10 ** 2) / 2600
+
 
 if __name__ == '__main__':
     test_ovelap()
