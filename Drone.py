@@ -2,9 +2,6 @@ import threading
 import multiprocessing
 import time
 from datetime import datetime
-
-import keyboard
-
 import Detection
 import cv2
 import numpy as np
@@ -45,7 +42,7 @@ class Drone(tello.Tello):
         self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
 
         # initializing Tracker
-        self.tracker = Tracker.ObjectTracking((0.19, 1e-10, 0, constants.FRAME_SHAPE[0] // 2),
+        self.tracker = Tracker.ObjectTracking((0.25, 0, 0, constants.FRAME_SHAPE[0] // 2),
                                               (1, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
                                               (200, 0, 0, 0.25))
 
@@ -54,7 +51,7 @@ class Drone(tello.Tello):
         self.saver_thread.start()
         self.receiver_thread = threading.Thread(target=self.frames_receiver.readframes, name='receiver_thread')
         self.receiver_thread.start()
-#
+
     class FramesReceiver:
         """
         this class receives frames from the drone and stored them in a array
@@ -134,7 +131,7 @@ class Drone(tello.Tello):
                     self.video_writer.release()
                     cv2.destroyAllWindows()
                     break
-                # cv2.imshow("Image", img)
+                cv2.imshow("Image", img)
                 self.video_writer.write(img)
 
     def polygon(self, num_corners: int, radius_in_cm):
@@ -153,12 +150,6 @@ class Drone(tello.Tello):
         gets the latest image received from the drone
         """
         return self.frames_receiver.getFrame(consume=False)
-    def emergency_landing_check(self):
-        if keyboard.is_pressed('q'):
-            cv2.destroyAllWindows()
-            self.send_rc_control(0, 0, 0, 0)
-            self.land()
-            exit(1)
 
     def track(self):
         """
@@ -168,7 +159,6 @@ class Drone(tello.Tello):
             bbox = self.detector.find_center(self.getFrame())
             xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
             self.send_rc_control(0, -zVal, -yVal, xVal)
-            self.emergency_landing_check()
 
 
 def dice_coefficient(bounding_box1, bounding_box2):
@@ -182,10 +172,10 @@ def dice_coefficient(bounding_box1, bounding_box2):
     x_inteval2 = [bounding_box2[0], bounding_box2[0] + bounding_box2[2]]
     y_inteval1 = [bounding_box1[1], bounding_box1[1] + bounding_box1[3]]
     y_inteval2 = [bounding_box2[1], bounding_box2[1] + bounding_box2[3]]
-    overlap_area = get_overlap_interval(x_inteval1, x_inteval2) * get_overlap_interval(y_inteval1, y_inteval2)
-    bb1_area = bounding_box1[2] * bounding_box1[3]
+    overlap_area = get_overlap_interval(x_inteval1,x_inteval2)*get_overlap_interval(y_inteval1,y_inteval2)
+    bb1_area = bounding_box1[2]*bounding_box1[3]
     bb2_area = bounding_box2[2] * bounding_box2[3]
-    return 2 * overlap_area / (bb1_area + bb2_area)
+    return 2*overlap_area/(bb1_area+bb2_area)
 
 
 def get_overlap_interval(interval1, interval2):
@@ -226,20 +216,17 @@ def test_ovelap():
     inter2 = [91, 240]
     assert get_overlap_interval(inter1, inter2) == 0
     assert get_overlap_interval(inter2, inter1) == 0
-
-
 def test_dice():
-    bb1 = [100, 100, 50, 50]
-    bb2 = [125, 125, 50, 50]
-    assert dice_coefficient(bb1, bb2) == 2 * (25 ** 2) / 5000
+    bb1 = [100,100,50,50]
+    bb2 = [125,125,50,50]
+    assert dice_coefficient(bb1,bb2) == 2*(25**2)/5000
     assert dice_coefficient(bb2, bb1) == 2 * (25 ** 2) / 5000
     assert dice_coefficient(bb1, bb1) == 1
     bb2 = [0, 0, 50, 50]
     assert dice_coefficient(bb1, bb2) == 0
     assert dice_coefficient(bb2, bb1) == 0
     bb2 = [125, 125, 10, 10]
-    assert dice_coefficient(bb2, bb1) == 2 * (10 ** 2) / 2600
-
+    assert dice_coefficient(bb2, bb1) == 2 * (10** 2) / 2600
 
 if __name__ == '__main__':
     test_ovelap()
