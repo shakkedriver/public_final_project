@@ -54,7 +54,7 @@ class Drone(tello.Tello):
         self.saver_thread.start()
         self.receiver_thread = threading.Thread(target=self.frames_receiver.readframes, name='receiver_thread')
         self.receiver_thread.start()
-
+#
     class FramesReceiver:
         """
         this class receives frames from the drone and stored them in a array
