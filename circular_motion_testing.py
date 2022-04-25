@@ -9,9 +9,10 @@ if __name__ == '__main__':
     drone.takeoff()
     drone.move_up(30)
     while True:
-        bbox = drone.detector.find_center(drone.getFrame())
+        bbox = drone.detector.find_center(drone.get_frame())
         xVal, yVal, zVal = tracker.get_rc_commend(bbox)
         drone.send_rc_control(40, -zVal, -yVal, xVal)
+        # drone.emergency_landing_check()
 
 
 

@@ -2,12 +2,16 @@ import threading
 import multiprocessing
 import time
 from datetime import datetime
+
+import keyboard
+
 import Detection
 import cv2
 import numpy as np
 from djitellopy import tello
 import Tracker
 import constants
+import copy
 
 now = datetime.now()
 
@@ -22,7 +26,7 @@ class Drone(tello.Tello):
         calls the super constructor and runs the code needed for use of the object
         """
 
-        self.BUFFER_SIZE = 10000
+        self.BUFFER_SIZE = 10000 # TODO - move to const
 
         # connecting to Tello
         super().__init__(retry_count=6)
@@ -44,13 +48,22 @@ class Drone(tello.Tello):
         # initializing Tracker
         self.tracker = Tracker.ObjectTracking((0.25, 0, 0, constants.FRAME_SHAPE[0] // 2),
                                               (1, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
-                                              (200, 0, 0, 0.25))
+                                              (250, 0, 0, 0.13))
 
         # initializing threads
         self.saver_thread = threading.Thread(target=self.video_saver.create_video_loop, name='saver_thread')
         self.saver_thread.start()
         self.receiver_thread = threading.Thread(target=self.frames_receiver.readframes, name='receiver_thread')
         self.receiver_thread.start()
+
+        # initializing for test TODO
+        self.frame_counter = 0
+        self.bbox_counter = 0
+        self.yes_bbox_counter = 0
+        self.array_bbox = []
+        self.start_time = time.time()
+
+        self.frame_counter_start = False
 
     class FramesReceiver:
         """
@@ -79,7 +92,8 @@ class Drone(tello.Tello):
                     self.drone.buffer_mutex.acquire()
 
                     self.image_buffer.append(img)
-
+                    if self.drone.frame_counter_start:  # TODO frame_counter for test
+                        self.drone.frame_counter += 1  # TODO frame_counter for test
                     self.drone.buffer_mutex.release()
                     self.drone.fillCount.release()
 
@@ -127,29 +141,26 @@ class Drone(tello.Tello):
             while True:
                 img = self.drone.frames_receiver.getFrame()
                 if cv2.waitKey(5) & 0xFF == ord('q'):
+                    self.drone.send_read_command(0, 0, 0, 0)
                     self.drone.land()
                     self.video_writer.release()
-                    cv2.destroyAllWindows()
+                    # cv2.destroyAllWindows()
                     break
-                cv2.imshow("Image", img)
+                # cv2.imshow("Image", img)
                 self.video_writer.write(img)
-
-    def polygon(self, num_corners: int, radius_in_cm):
-        """
-        move the drone in a Regular polygon shape while facing to the center of the polygon
-        :param num_corners: the number of corners for the polygon
-        :param radius_in_cm: the radius in cm for the circle bounding the polygon
-        :return:None
-        """
-        for i in range(num_corners):
-            self.rotate_clockwise(int(360 / num_corners))
-            self.move_left(abs(int(radius_in_cm * np.sin(360 / num_corners) * 2)))
 
     def getFrame(self):
         """
         gets the latest image received from the drone
         """
         return self.frames_receiver.getFrame(consume=False)
+
+    # def emergency_landing_check(self):
+    #     if keyboard.is_pressed('q'):
+    #         cv2.destroyAllWindows()
+    #         self.send_rc_control(0, 0, 0, 0)
+    #         self.land()
+    #         exit(1)
 
     def track(self):
         """
@@ -159,75 +170,18 @@ class Drone(tello.Tello):
             bbox = self.detector.find_center(self.getFrame())
             xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
             self.send_rc_control(0, -zVal, -yVal, xVal)
+            # self.emergency_landing_check()
 
-
-def dice_coefficient(bounding_box1, bounding_box2):
-    """
-
-    @param bounding_box1:  [x,y,w,h]
-    @param bounding_box2:
-    @return: gauge the similarity of two images: Area of overlap / Area of Union
-    """
-    x_inteval1 = [bounding_box1[0], bounding_box1[0] + bounding_box1[2]]
-    x_inteval2 = [bounding_box2[0], bounding_box2[0] + bounding_box2[2]]
-    y_inteval1 = [bounding_box1[1], bounding_box1[1] + bounding_box1[3]]
-    y_inteval2 = [bounding_box2[1], bounding_box2[1] + bounding_box2[3]]
-    overlap_area = get_overlap_interval(x_inteval1,x_inteval2)*get_overlap_interval(y_inteval1,y_inteval2)
-    bb1_area = bounding_box1[2]*bounding_box1[3]
-    bb2_area = bounding_box2[2] * bounding_box2[3]
-    return 2*overlap_area/(bb1_area+bb2_area)
-
-
-def get_overlap_interval(interval1, interval2):
-    """
-
-    @param interval1: [x1, x1 + w1]
-    @param interval2: [x2, x2 + w2]
-    @return:  overlap interval
-    """
-    if interval1[0] < interval2[0]:
-        interval_a = interval1
-        interval_b = interval2
-    else:
-        interval_b = interval1
-        interval_a = interval2
-    if interval_b[0] > interval_a[1]:
-        return 0
-    elif interval_b[1] < interval_a[1]:
-        return interval_b[1] - interval_b[0]
-    else:
-        return interval_a[1] - interval_b[0]
-
-
-def test_ovelap():
-    inter1 = [30, 90]
-    inter2 = [40, 100]
-    assert get_overlap_interval(inter1, inter2) == 50
-    assert get_overlap_interval(inter2, inter1) == 50
-    inter1 = [30, 90]
-    inter2 = [40, 80]
-    assert get_overlap_interval(inter1, inter2) == 40
-    assert get_overlap_interval(inter2, inter1) == 40
-    inter1 = [30, 90]
-    inter2 = [90, 240]
-    assert get_overlap_interval(inter1, inter2) == 0
-    assert get_overlap_interval(inter2, inter1) == 0
-    inter1 = [30, 90]
-    inter2 = [91, 240]
-    assert get_overlap_interval(inter1, inter2) == 0
-    assert get_overlap_interval(inter2, inter1) == 0
-def test_dice():
-    bb1 = [100,100,50,50]
-    bb2 = [125,125,50,50]
-    assert dice_coefficient(bb1,bb2) == 2*(25**2)/5000
-    assert dice_coefficient(bb2, bb1) == 2 * (25 ** 2) / 5000
-    assert dice_coefficient(bb1, bb1) == 1
-    bb2 = [0, 0, 50, 50]
-    assert dice_coefficient(bb1, bb2) == 0
-    assert dice_coefficient(bb2, bb1) == 0
-    bb2 = [125, 125, 10, 10]
-    assert dice_coefficient(bb2, bb1) == 2 * (10** 2) / 2600
-
-if __name__ == '__main__':
-    test_ovelap()
-    test_dice()
+    def track_test(self):  # TODO for test
+        while (time.time() - self.start_time) < 60:
+            self.frame_counter_start = True
+            bbox = self.detector.find_center(self.getFrame())
+            self.bbox_counter += 1
+            if bbox:
+                self.yes_bbox_counter += 1
+                self.array_bbox.append(bbox)
+            xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
+            self.send_rc_control(0, -zVal, -yVal, xVal)
+            # self.emergency_landing_check()
+        frame_count = copy.deepcopy(self.frame_counter)
+        return self.bbox_counter, self.yes_bbox_counter, frame_count, self.array_bbox

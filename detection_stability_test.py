@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import Drone
 import numpy as np
@@ -43,15 +44,15 @@ def get_overlap_interval(interval1, interval2):
         return interval_a[1] - interval_b[0]
 
 
-def test_static_person():
-    myDrone = Drone.Drone()
+def test_static_person(myDrone):
     bbox_counter, no_bbox_counter, frame_count, array_bbox = myDrone.track_test()
     print(f"number of times the neural network was called on a frame {bbox_counter}\n",
           f"number of times the network didn't detect a person {no_bbox_counter}\n",
           f"number of frames received in the time interval {frame_count}")
     # analyse_dice_cof(array_bbox, "Static Person and Static Drone")
     # analyse_dice_cof(array_bbox, "Moving Person and Static Drone")
-    analyse_dice_cof(array_bbox, "Static Person and Moving Drone")
+    # analyse_dice_cof(array_bbox, "Static Person and Moving Drone")
+    analyse_dice_cof(array_bbox, "Moving Person and Moving Drone")
 
 
 def analyse_dice_cof(array_bbox, test_name=""):
@@ -83,4 +84,9 @@ def graph_for_test(test_name, d, deriv_d):
 
 
 if __name__ == '__main__':
-    print(test_static_person())
+    myDrone = Drone.Drone()
+    myDrone.takeoff()
+    print(test_static_person(myDrone))
+    myDrone.send_rc_control(0, 0, 0, 0)
+    myDrone.land()
+    sys.exit(1)

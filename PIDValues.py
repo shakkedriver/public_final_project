@@ -17,7 +17,7 @@ if __name__ == '__main__':
     drone.takeoff()
     drone.move_up(50)
     while True:
-        img = drone.getFrame()
+        img = drone.get_frame()
         # img, objects = detector.center_detect(img)
         # nearest = detector.find_nearest(objects)
         bbox = detector.find_center(img)
