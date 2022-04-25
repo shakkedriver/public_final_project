@@ -1,6 +1,6 @@
 from Drone import Drone
 import cv2
-
+import keyboard
 if __name__ == "__main__":
     myDrone = Drone()
     myDrone.takeoff()
@@ -8,7 +8,3 @@ if __name__ == "__main__":
     # time.sleep(1)
     # myDrone.polygon(12, 200)
     myDrone.track()
-    if cv2.waitKey(5) & 0xFF == ord('q'):
-        myDrone.land()
-        cv2.destroyAllWindows()
-        myDrone.send_rc_control(0, 0, 0, 0)

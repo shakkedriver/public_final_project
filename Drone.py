@@ -2,6 +2,9 @@ import threading
 import multiprocessing
 import time
 from datetime import datetime
+
+import keyboard
+
 import Detection
 import cv2
 import numpy as np
@@ -42,7 +45,7 @@ class Drone(tello.Tello):
         self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
 
         # initializing Tracker
-        self.tracker = Tracker.ObjectTracking((0.25, 0, 0, constants.FRAME_SHAPE[0] // 2),
+        self.tracker = Tracker.ObjectTracking((0.19, 1e-10, 0, constants.FRAME_SHAPE[0] // 2),
                                               (1, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
                                               (200, 0, 0, 0.25))
 
@@ -150,6 +153,12 @@ class Drone(tello.Tello):
         gets the latest image received from the drone
         """
         return self.frames_receiver.getFrame(consume=False)
+    def emergency_landing_check(self):
+        if keyboard.is_pressed('q'):
+            cv2.destroyAllWindows()
+            self.send_rc_control(0, 0, 0, 0)
+            self.land()
+            exit(1)
 
     def track(self):
         """
@@ -159,6 +168,7 @@ class Drone(tello.Tello):
             bbox = self.detector.find_center(self.getFrame())
             xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
             self.send_rc_control(0, -zVal, -yVal, xVal)
+            self.emergency_landing_check()
 
 
 def dice_coefficient(bounding_box1, bounding_box2):
