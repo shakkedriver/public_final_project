@@ -49,10 +49,17 @@ def test_static_person(myDrone):
     print(f"number of times the neural network was called on a frame {bbox_counter}\n",
           f"number of times the network didn't detect a person {no_bbox_counter}\n",
           f"number of frames received in the time interval {frame_count}")
-    # analyse_dice_cof(array_bbox, "Static Person and Static Drone")
-    # analyse_dice_cof(array_bbox, "Moving Person and Static Drone")
-    # analyse_dice_cof(array_bbox, "Static Person and Moving Drone")
-    analyse_dice_cof(array_bbox, "Moving Person and Moving Drone")
+    test_name = "Static Person and Static Drone"
+    test_name = "Moving Person and Static Drone"
+    test_name = "Static Person and Moving Drone"
+    test_name = "Moving Person and Moving Drone"
+
+    analyse_dice_cof(array_bbox, test_name)
+    file_name = test_name + ".txt"
+    with open(file_name, 'w') as file:
+        file.write(f"number of times the neural network was called on a frame {bbox_counter}\n")
+        file.write(f"number of times the network didn't detect a person {no_bbox_counter}\n")
+        file.write(f"number of frames received in the time interval {frame_count}")
 
 
 def analyse_dice_cof(array_bbox, test_name=""):
