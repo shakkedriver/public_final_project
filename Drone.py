@@ -2,7 +2,7 @@ import threading
 import multiprocessing
 import time
 from datetime import datetime
-
+# from math import sqrt
 import keyboard
 
 import Detection
@@ -10,7 +10,6 @@ import cv2
 import numpy as np
 from djitellopy import tello
 import Tracker
-import constants
 from constants import *
 import copy
 
@@ -47,13 +46,13 @@ class Drone(tello.Tello):
         self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
 
         # initializing Trackers
-        self.tracker = Tracker.ObjectTracking(pid_values_x=(0.25, 0, 0, constants.FRAME_SHAPE[0] // 2),
-                                              pid_values_y=(0.5, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
+        self.tracker = Tracker.ObjectTracking(pid_values_x=(0.25, 0, 0, FRAME_SHAPE[0] // 2),
+                                              pid_values_y=(0.5, 0, 0.1, FRAME_SHAPE[1] // 1.9),
                                               pid_values_z=(250, 0, 0, OPTIMAL_Z_RATIO))
 
-        self.circular_tracker = Tracker.ObjectTracking(pid_values_x=(0.4, 0, 0, constants.FRAME_SHAPE[0] // 2),
-                                                       pid_values_y=(0.5, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
-                                                       pid_values_z=(100, 0, 0, OPTIMAL_Z_RATIO))
+        self.circular_tracker = Tracker.ObjectTracking(pid_values_x=(0.4, 0, 0, FRAME_SHAPE[0] // 2),
+                                                       pid_values_y=(0.5, 0, 0.1, FRAME_SHAPE[1] // 1.9),
+                                                       pid_values_z=(100, 0, 0,  OPTIMAL_Z_RATIO))
         self.current_tracker = self.tracker
 
         # initializing threads
@@ -93,7 +92,7 @@ class Drone(tello.Tello):
             while True:
                 ret, img = self.VideoCap.read()
                 if ret:
-                    img = cv2.resize(img, constants.FRAME_SHAPE)
+                    img = cv2.resize(img, FRAME_SHAPE)
                     self.drone.emptyCount.acquire()
                     self.drone.buffer_mutex.acquire()
 
@@ -137,7 +136,7 @@ class Drone(tello.Tello):
             """
             self.drone = drone
             self.video_writer = cv2.VideoWriter(f'{now.strftime("%H:%M:%S")}.avi',
-                                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, constants.FRAME_SHAPE)
+                                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), FRAME_RATE, FRAME_SHAPE)
 
         def create_video_loop(self):
             """
@@ -180,7 +179,7 @@ class Drone(tello.Tello):
                 print(f"z_ratio is {z_ratio}")
                 self.switch_tracker(z_ratio)
             xResponse, yResponse, zResponse = self.current_tracker.get_rc_commend(bbox)
-            self.send_rc_control(0 if self.current_tracker is self.tracker else 40, -zResponse, -yResponse, xResponse)
+            self.send_rc_control(0 if self.current_tracker is self.tracker else SIDE_MOTION, -zResponse, -yResponse, xResponse)
             # self.emergency_landing_check()
         self.land()  # TODO - remove
 
@@ -193,13 +192,13 @@ class Drone(tello.Tello):
                 self.current_tracker is not self.circular_tracker):
             self.current_tracker = self.circular_tracker
             self.current_tracker.reset()
-            print(f"switch was made 0")
-        elif ((OPTIMAL_Z_RATIO - DELTA_BOUND_CIRCULAR) > z_ratio or (
-                OPTIMAL_Z_RATIO + DELTA_BOUND_CIRCULAR) < z_ratio) and (
+            print(f"switch was made 0.circular")
+        elif ((OPTIMAL_Z_RATIO - DELTA_BOUND_TRACKER) > z_ratio or (
+                OPTIMAL_Z_RATIO + DELTA_BOUND_TRACKER) < z_ratio) and (
                 self.current_tracker is not self.tracker):
             self.current_tracker = self.tracker
             self.current_tracker.reset()
-            print(f"switch was made 1")
+            print(f"switch was made 1.tracker")
 
     def track_test(self):  # TODO for test
         while (time.time() - self.start_time) < 60:
