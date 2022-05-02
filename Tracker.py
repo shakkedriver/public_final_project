@@ -1,6 +1,7 @@
 from PIDModule import PID
 import constants
 
+
 class ObjectTracking:
     def __init__(self, pid_values_x, pid_values_y, pid_values_z):
         """
@@ -24,14 +25,18 @@ class ObjectTracking:
         @param bbox: [x, y, w, h, cx, cy, area]
         @return: xVal, yVal, zVal
         """
-        xVal = 0
-        yVal = 0
-        zVal = 0
+        xResponse = 0
+        yResponse = 0
+        zResponse = 0
         if bbox:
-            [x, y, w, h, cx, cy, area] = bbox
-            z_ratio = area / constants.FRAME_SIZE
+            [x, y, w, h, cx, cy, z_ratio] = bbox
             cx, cy = int(cx), int(cy)
-            xVal = int(self.xPID.update(cx))
-            yVal = int(self.yPID.update(cy))
-            zVal = int(self.zPID.update(z_ratio))
-        return xVal, yVal, zVal
+            xResponse = int(self.xPID.update(cx))
+            yResponse = int(self.yPID.update(cy))
+            zResponse = int(self.zPID.update(z_ratio))
+        return xResponse, yResponse, zResponse
+
+    def reset(self):
+        self.xPID.reset()
+        self.yPID.reset()
+        self.zPID.reset()

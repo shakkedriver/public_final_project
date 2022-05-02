@@ -11,6 +11,7 @@ import numpy as np
 from djitellopy import tello
 import Tracker
 import constants
+from constants import *
 import copy
 
 now = datetime.now()
@@ -26,7 +27,7 @@ class Drone(tello.Tello):
         calls the super constructor and runs the code needed for use of the object
         """
 
-        self.BUFFER_SIZE = 10000 # TODO - move to const
+        self.BUFFER_SIZE = 10000  # TODO - move to const
 
         # connecting to Tello
         super().__init__(retry_count=6)
@@ -45,10 +46,15 @@ class Drone(tello.Tello):
         self.video_saver = self.VideoSaver(self)
         self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
 
-        # initializing Tracker
-        self.tracker = Tracker.ObjectTracking((0.25, 0, 0, constants.FRAME_SHAPE[0] // 2),
-                                              (1, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
-                                              (250, 0, 0, 0.13))
+        # initializing Trackers
+        self.tracker = Tracker.ObjectTracking(pid_values_x=(0.25, 0, 0, constants.FRAME_SHAPE[0] // 2),
+                                              pid_values_y=(0.5, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
+                                              pid_values_z=(250, 0, 0, OPTIMAL_Z_RATIO))
+
+        self.circular_tracker = Tracker.ObjectTracking(pid_values_x=(0.4, 0, 0, constants.FRAME_SHAPE[0] // 2),
+                                                       pid_values_y=(0.5, 0, 0.1, constants.FRAME_SHAPE[1] // 1.9),
+                                                       pid_values_z=(100, 0, 0, OPTIMAL_Z_RATIO))
+        self.current_tracker = self.tracker
 
         # initializing threads
         self.saver_thread = threading.Thread(target=self.video_saver.create_video_loop, name='saver_thread')
@@ -161,16 +167,39 @@ class Drone(tello.Tello):
     #         self.send_rc_control(0, 0, 0, 0)
     #         self.land()
     #         exit(1)
-#
+    #
     def track(self):
         """
 
         """
-        while True:
+        # while True:
+        while (time.time() - self.start_time) < 60:  # TODO - remove leave while True
             bbox = self.detector.find_center(self.getFrame())
-            xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
-            self.send_rc_control(0, -zVal, -yVal, xVal)
+            if bbox:
+                z_ratio = bbox[6]
+                print(f"z_ratio is {z_ratio}")
+                self.switch_tracker(z_ratio)
+            xResponse, yResponse, zResponse = self.current_tracker.get_rc_commend(bbox)
+            self.send_rc_control(0 if self.current_tracker is self.tracker else 40, -zResponse, -yResponse, xResponse)
             # self.emergency_landing_check()
+        self.land()  # TODO - remove
+
+    def switch_tracker(self, z_ratio):
+        # print(f"{0.1 <= z_ratio <= 0.25 and self.current_tracker is not self.circular_tracker=}")
+        # print(f"{(0.1 > z_ratio or 0.25 < z_ratio) and (self.current_tracker is not self.tracker)=}")
+        # print(f"{self.current_tracker is not self.tracker=}")
+        # print(f"{self.current_tracker is not self.circular_tracker=}")
+        if ((OPTIMAL_Z_RATIO - DELTA_BOUND_CIRCULAR) <= z_ratio <= (OPTIMAL_Z_RATIO + DELTA_BOUND_CIRCULAR)) and (
+                self.current_tracker is not self.circular_tracker):
+            self.current_tracker = self.circular_tracker
+            self.current_tracker.reset()
+            print(f"switch was made 0")
+        elif ((OPTIMAL_Z_RATIO - DELTA_BOUND_CIRCULAR) > z_ratio or (
+                OPTIMAL_Z_RATIO + DELTA_BOUND_CIRCULAR) < z_ratio) and (
+                self.current_tracker is not self.tracker):
+            self.current_tracker = self.tracker
+            self.current_tracker.reset()
+            print(f"switch was made 1")
 
     def track_test(self):  # TODO for test
         while (time.time() - self.start_time) < 60:
@@ -180,7 +209,7 @@ class Drone(tello.Tello):
             if bbox:
                 self.yes_bbox_counter += 1
                 self.array_bbox.append(bbox)
-            xVal, yVal, zVal = self.tracker.get_rc_commend(bbox)
+            xVal, yVal, zVal = self.current_tracker.get_rc_commend(bbox)
             self.send_rc_control(0, -zVal, -yVal, xVal)
             # self.emergency_landing_check()
         frame_count = copy.deepcopy(self.frame_counter)

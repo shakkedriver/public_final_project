@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+import constants
+
 
 class ObjectsDetector:
     def __init__(self, config_file, weights_file):
@@ -39,4 +41,4 @@ class ObjectsDetector:
             y = person[0][1]
             w = person[0][2]
             h = person[0][3]
-            return [x, y, w, h, (x + w / 2), (y + h / 2), (w * h)]  # TODO maybe without returning x, y, w, h?
+            return [x, y, w, h, (x + w / 2), (y + h / 2), (w * h)/constants.FRAME_SIZE]  # TODO maybe without returning x, y, w, h?

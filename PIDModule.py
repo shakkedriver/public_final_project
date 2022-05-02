@@ -8,7 +8,8 @@ class PID:
     to get the value neesery to input to the system in order to stabilize it closer to the target value.
     you can read more about the pid model here : https://en.wikipedia.org/wiki/PID_controller
     """
-    def __init__(self, Kp, Ki, Kd, targetVal, limit=None):
+
+    def __init__(self, Kp, Ki, Kd, targetVal, limit):
         """
 
         :param Kp: the size of the part of the adjustments we want to make in each call to update that is proportional to
@@ -21,14 +22,14 @@ class PID:
         :param targetVal: the desired set point
         :param limit: limitation of the drone
         """
-        self.Kp = Kp
-        self.Ki = Ki
-        self.Kd = Kd
+        self.Kp = Kp  # gain for proportional
+        self.Ki = Ki  # gain for integral
+        self.Kd = Kd  # gain for detective
         self.targetVal = targetVal
-        self.pError = 0
-        self.limit = limit
-        self.I = 0
-        self.pTime = 0
+        self.pError = 0  # the previous error
+        self.limit = limit  # upper bound for response
+        self.I = 0  # the sum of errors so far
+        self.pTime = time.time()  # the last time we updated
 
     def update(self, cVal):
         """
@@ -39,14 +40,15 @@ class PID:
         t = time.time() - self.pTime
         error = cVal - self.targetVal
         P = self.Kp * error
-        self.I = self.I + (self.Ki * error * (t - self.pTime))
+        self.I = self.I + (self.Ki * error * t)
         D = (self.Kd * (error - self.pError)) / t
-
         result = P + self.I + D
-
-        if self.limit is not None:
-            result = float(np.clip(result, self.limit[0], self.limit[1]))
+        result = float(np.clip(result, self.limit[0], self.limit[1]))
         self.pError = error
         self.ptime = time.time()
-
         return result
+
+    def reset(self):
+        self.pTime = time.time()
+        self.pError = 0
+        self.I = 0
