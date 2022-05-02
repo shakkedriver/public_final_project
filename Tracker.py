@@ -40,3 +40,14 @@ class ObjectTracking:
         self.xPID.reset()
         self.yPID.reset()
         self.zPID.reset()
+
+    def set_temporal_data(self, temp_data_x, temp_data_y, temp_data_z):
+        pTime, pError, I = temp_data_x
+        self.xPID.set_temporal_data(pTime, pError, I)
+        pTime, pError, I = temp_data_y
+        self.xPID.set_temporal_data(pTime, pError, I)
+        pTime, pError, I = temp_data_z
+        self.xPID.set_temporal_data(pTime, pError, I)
+
+    def get_temporal_data(self):
+        return self.xPID.get_temporal_data(), self.yPID.get_temporal_data(), self.zPID.get_temporal_data()

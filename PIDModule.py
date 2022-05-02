@@ -52,3 +52,11 @@ class PID:
         self.pTime = time.time()
         self.pError = 0
         self.I = 0
+
+    def set_temporal_data(self, pTime, pErroe, I):
+        self.pTime = pTime
+        self.pError = pErroe
+        self.I = I
+
+    def get_temporal_data(self):
+        return self.pTime, self.pError, self.I

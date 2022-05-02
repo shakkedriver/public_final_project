@@ -48,11 +48,11 @@ class Drone(tello.Tello):
         # initializing Trackers
         self.tracker = Tracker.ObjectTracking(pid_values_x=(0.25, 0, 0, FRAME_SHAPE[0] // 2),
                                               pid_values_y=(0.5, 0, 0.1, FRAME_SHAPE[1] // 1.9),
-                                              pid_values_z=(250, 0, 0, OPTIMAL_Z_RATIO))
+                                              pid_values_z=(300, 0, 0, OPTIMAL_Z_RATIO * 1.2))
 
-        self.circular_tracker = Tracker.ObjectTracking(pid_values_x=(0.4, 0, 0, FRAME_SHAPE[0] // 2),
+        self.circular_tracker = Tracker.ObjectTracking(pid_values_x=(0.29, 1e-3, 0, FRAME_SHAPE[0] // 2),
                                                        pid_values_y=(0.5, 0, 0.1, FRAME_SHAPE[1] // 1.9),
-                                                       pid_values_z=(100, 0, 0,  OPTIMAL_Z_RATIO))
+                                                       pid_values_z=(100, 0, 0, OPTIMAL_Z_RATIO))
         self.current_tracker = self.tracker
 
         # initializing threads
@@ -179,7 +179,8 @@ class Drone(tello.Tello):
                 print(f"z_ratio is {z_ratio}")
                 self.switch_tracker(z_ratio)
             xResponse, yResponse, zResponse = self.current_tracker.get_rc_commend(bbox)
-            self.send_rc_control(0 if self.current_tracker is self.tracker else SIDE_MOTION, -zResponse, -yResponse, xResponse)
+            self.send_rc_control(0 if self.current_tracker is self.tracker else SIDE_MOTION, -zResponse, -yResponse,
+                                 xResponse)
             # self.emergency_landing_check()
         self.land()  # TODO - remove
 
@@ -190,18 +191,20 @@ class Drone(tello.Tello):
         # print(f"{self.current_tracker is not self.circular_tracker=}")
         if ((OPTIMAL_Z_RATIO - DELTA_BOUND_CIRCULAR) <= z_ratio <= (OPTIMAL_Z_RATIO + DELTA_BOUND_CIRCULAR)) and (
                 self.current_tracker is not self.circular_tracker):
+            temp_data_x, temp_data_y, temp_data_z = self.current_tracker.get_temporal_data()
             self.current_tracker = self.circular_tracker
-            self.current_tracker.reset()
+            self.current_tracker.set_temporal_data(temp_data_x, temp_data_y, temp_data_z)
             print(f"switch was made 0.circular")
         elif ((OPTIMAL_Z_RATIO - DELTA_BOUND_TRACKER) > z_ratio or (
                 OPTIMAL_Z_RATIO + DELTA_BOUND_TRACKER) < z_ratio) and (
                 self.current_tracker is not self.tracker):
+            temp_data_x, temp_data_y, temp_data_z = self.current_tracker.get_temporal_data()
             self.current_tracker = self.tracker
-            self.current_tracker.reset()
+            self.current_tracker.set_temporal_data(temp_data_x, temp_data_y, temp_data_z)
             print(f"switch was made 1.tracker")
 
     def track_test(self):  # TODO for test
-        while (time.time() - self.start_time) < 60:
+        while (time.time() - self.start_time) < 90:
             self.frame_counter_start = True
             bbox = self.detector.find_center(self.getFrame())
             self.bbox_counter += 1
