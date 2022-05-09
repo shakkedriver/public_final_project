@@ -17,14 +17,31 @@ class ObjectsDetector:
     finds the bonding box with the highest probability with a person inside it [x, y, w, h]
     """
 
-    def detect(self, img, prob=.5):
+    def detect(self, img, prob=.2):
         h, w = img.shape[:2]
         blob = cv2.dnn.blobFromImage(img, 1 / 255.0, (416, 416), swapRB=True, crop=False)
         self.net.setInput(blob)
         person = self.net.forward(self.ln)
-        person = np.vstack(person)
-        person = person[:, :6]
-        person = person[np.where(person[:, 5] > prob)]
+        # p1,p2,p3 = person#todo
+        p1, p2 = person
+        p1 = p1[np.where(p1[:, 5] > prob)]
+        p2 = p2[np.where(p2[:, 5] > prob)]
+        # p3 = p3[np.where(p3[:, 5] > prob)]
+        p1 = p1[:,:6]
+        p2 = p2[:,:6]
+        # p3 = p3[:,:6]
+        if p1.shape[0] != 0:
+            p1 = p1[np.argmax(p1[:, 5])]
+            p1 = p1.reshape((-1,6))
+        if p2.shape[0] != 0:
+            p2 = p2[np.argmax(p2[:, 5])]
+            p2 = p2.reshape((-1, 6))
+        # if p3.shape[0] != 0:
+        #     p3 = p3[np.argmax(p3[:, 5])]
+        #     p1 = p1.reshape((-1, 6))
+
+        # person = np.vstack([p1,p2,p3])#todo
+        person = np.vstack([p1, p2])
         if person.shape[0] != 0:
             person = person[np.argmax(person[:, 5])]
         person = person.reshape((-1, 6))

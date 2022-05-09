@@ -1,3 +1,4 @@
+import sys
 import threading
 import multiprocessing
 import time
@@ -26,8 +27,6 @@ class Drone(tello.Tello):
         calls the super constructor and runs the code needed for use of the object
         """
 
-        self.BUFFER_SIZE = 10000  # TODO - move to const
-
         # connecting to Tello
         super().__init__(retry_count=6)
         self.connect()
@@ -38,19 +37,19 @@ class Drone(tello.Tello):
         # synchronization
         self.buffer_mutex = threading.RLock()  # only one thread can access the buffer
         self.fillCount = threading.Semaphore(0)  # counts how many frames are in the buffer
-        self.emptyCount = threading.Semaphore(self.BUFFER_SIZE)  # prevents threads from accessing the buffer when
+        self.emptyCount = threading.Semaphore(BUFFER_SIZE)  # prevents threads from accessing the buffer when
 
         # initializing different classes
         self.frames_receiver = self.FramesReceiver(self)
         self.video_saver = self.VideoSaver(self)
-        self.detector = Detection.ObjectsDetector("yolov3.cfg", "yolov3.weights")
+        self.detector = Detection.ObjectsDetector("yolov4-tiny.cfg", "yolov4-tiny.weights")
 
         # initializing Trackers
         self.tracker = Tracker.ObjectTracking(pid_values_x=(0.25, 0, 0, FRAME_SHAPE[0] // 2),
                                               pid_values_y=(0.5, 0, 0.1, FRAME_SHAPE[1] // 1.9),
-                                              pid_values_z=(300, 0, 0, OPTIMAL_Z_RATIO * 1.2))
+                                              pid_values_z=(400, 0, 0, OPTIMAL_Z_RATIO * 1.2))
 
-        self.circular_tracker = Tracker.ObjectTracking(pid_values_x=(0.29, 1e-3, 0, FRAME_SHAPE[0] // 2),
+        self.circular_tracker = Tracker.ObjectTracking(pid_values_x=(0.25, 1.1e-3, 0.15, FRAME_SHAPE[0] // 2),
                                                        pid_values_y=(0.5, 0, 0.1, FRAME_SHAPE[1] // 1.9),
                                                        pid_values_z=(100, 0, 0, OPTIMAL_Z_RATIO))
         self.current_tracker = self.tracker
@@ -109,6 +108,7 @@ class Drone(tello.Tello):
             :param consume:
             :return:
             """
+
             if consume:
                 self.drone.fillCount.acquire()
                 self.drone.buffer_mutex.acquire()
@@ -151,7 +151,7 @@ class Drone(tello.Tello):
                     self.video_writer.release()
                     # cv2.destroyAllWindows()
                     break
-                # cv2.imshow("Image", img)
+                # cv2.imshow("Image", img)  # TODO - remove
                 self.video_writer.write(img)
 
     def getFrame(self):
@@ -172,17 +172,27 @@ class Drone(tello.Tello):
 
         """
         # while True:
-        while (time.time() - self.start_time) < 60:  # TODO - remove leave while True
+        last_detected_person = None
+        while (time.time() - self.start_time) < 120:  # TODO - remove leave while True
             bbox = self.detector.find_center(self.getFrame())
             if bbox:
                 z_ratio = bbox[6]
-                print(f"z_ratio is {z_ratio}")
+                # print(f"z_ratio is {z_ratio}")
                 self.switch_tracker(z_ratio)
+                last_detected_person = bbox
+            elif last_detected_person:
+                print(f"last_detected_person")
+                self.current_tracker.reset()
+                self.send_rc_control(0, 0, 0, - SEEK_YAW if last_detected_person[4] > FRAME_SHAPE[0] else SEEK_YAW)
+                continue
             xResponse, yResponse, zResponse = self.current_tracker.get_rc_commend(bbox)
-            self.send_rc_control(0 if self.current_tracker is self.tracker else SIDE_MOTION, -zResponse, -yResponse,
-                                 xResponse)
+            # yResponse,zResponse = 0,0#todo
+            self.send_rc_control(0 if self.current_tracker is self.tracker or not bbox else SIDE_MOTION, -zResponse,
+                                 -yResponse, xResponse)
             # self.emergency_landing_check()
+
         self.land()  # TODO - remove
+        sys.exit()
 
     def switch_tracker(self, z_ratio):
 
