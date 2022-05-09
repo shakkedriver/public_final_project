@@ -195,7 +195,7 @@ class Drone(tello.Tello):
         sys.exit()
 
     def switch_tracker(self, z_ratio):
-
+#
         # print(f"{(0.1 > z_ratio or 0.25 < z_ratio) and (self.current_tracker is not self.tracker)=}")
         # print(f"{self.current_tracker is not self.tracker=}")
         # print(f"{self.current_tracker is not self.circular_tracker=}")
