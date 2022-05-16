@@ -15,13 +15,13 @@ import constants
 
 
 class ObjectsDetector:
-    def __init__(self, config_file, weights_file):
-        self.net = cv2.dnn.readNetFromDarknet(config_file, weights_file)
-        self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-        self.ln = self.net.getLayerNames()
-        self.ln = [self.ln[i - 1] for i in self.net.getUnconnectedOutLayers()]
+    def __init__(self, config_file=None, weights_file=None):
+        # self.net = cv2.dnn.readNetFromDarknet(config_file, weights_file)
+        # self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+        # self.ln = self.net.getLayerNames()
+        # self.ln = [self.ln[i - 1] for i in self.net.getUnconnectedOutLayers()]
 
-        self.yolov5 = DetectMultiBackend('yolov5n.pt')
+        self.yolov5 = DetectMultiBackend('yolov5/weights/yolov5m.pt')
 
     """
     finds the bonding box with the highest probability with a person inside it [x, y, w, h]
