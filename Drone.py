@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 # from math import sqrt
 import keyboard
-
+#
 import Detection
 import cv2
 import numpy as np
@@ -214,15 +214,52 @@ class Drone(tello.Tello):
             print(f"switch was made 1.tracker")
 
     def track_test(self):  # TODO for test
-        while (time.time() - self.start_time) < 90:
+        erorr = []
+        targetarr = np.array(TARGET)
+        last_detected_person = None
+        while (time.time() - self.start_time) < 60:  # TODO - remove leave while True
             self.frame_counter_start = True
-            bbox = self.detector.find_center(self.getFrame())
             self.bbox_counter += 1
+            bbox = self.detector.find_center(self.getFrame())
             if bbox:
+                cur_pos = np.array(bbox[4:7])
+                erorr.append(np.linalg.norm(cur_pos - targetarr))
                 self.yes_bbox_counter += 1
                 self.array_bbox.append(bbox)
-            xVal, yVal, zVal = self.current_tracker.get_rc_commend(bbox)
-            self.send_rc_control(0, -zVal, -yVal, xVal)
+                z_ratio = bbox[6]
+                # print(f"z_ratio is {z_ratio}")
+                self.switch_tracker(z_ratio)
+                last_detected_person = bbox
+            elif last_detected_person:
+                print(f"last_detected_person")
+                self.current_tracker.reset()
+                self.send_rc_control(0, 0, 0, - SEEK_YAW if last_detected_person[4] > FRAME_SHAPE[0] else SEEK_YAW)
+                continue
+            xResponse, yResponse, zResponse = self.current_tracker.get_rc_commend(bbox)
+            # yResponse,zResponse = 0,0#todo
+            self.send_rc_control(0 if self.current_tracker is self.tracker or not bbox else SIDE_MOTION, -zResponse,
+                                 -yResponse, xResponse)
             # self.emergency_landing_check()
         frame_count = copy.deepcopy(self.frame_counter)
-        return self.bbox_counter, self.yes_bbox_counter, frame_count, self.array_bbox
+        np.save("bb_error", erorr)
+        self.land()  # TODO - remove
+        return self.bbox_counter, self.yes_bbox_counter, frame_count, self.array_bbox,np.array(erorr)
+
+        # erorr = []
+        # targetarr = np.array(TARGET)
+        # while (time.time() - self.start_time) < 90:
+        #     self.frame_counter_start = True
+        #     bbox = self.detector.find_center(self.getFrame())
+        #     cur_pos = np.array(bbox[4:7])
+        #     erorr.append(np.linalg.norm(cur_pos - targetarr))
+        #
+        #     self.bbox_counter += 1
+        #     if bbox:
+        #         self.yes_bbox_counter += 1
+        #         self.array_bbox.append(bbox)
+        #     xVal, yVal, zVal = self.current_tracker.get_rc_commend(bbox)
+        #     self.send_rc_control(0, -zVal, -yVal, xVal)
+        #     # self.emergency_landing_check()
+        # frame_count = copy.deepcopy(self.frame_counter)
+        # np.save("bb_error", erorr)
+        # return self.bbox_counter, self.yes_bbox_counter, frame_count, self.array_bbox,np.array(erorr)

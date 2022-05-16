@@ -8,5 +8,5 @@ if __name__ == "__main__":
     myDrone.move_up(20)
     # time.sleep(1)
     # myDrone.polygon(12, 200)
-    myDrone.track()
+    myDrone.track_test()
     # myDrone.land()
