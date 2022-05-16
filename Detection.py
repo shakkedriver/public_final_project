@@ -3,6 +3,14 @@
 import cv2
 import numpy as np
 
+from yolov5.utils.datasets import LoadImages, LoadStreams, VID_FORMATS
+from yolov5.utils.general import (LOGGER, check_img_size, non_max_suppression, scale_coords,
+                                  check_imshow, xyxy2xywh, increment_path, strip_optimizer, colorstr)
+from yolov5.utils.torch_utils import select_device, time_sync
+from yolov5.utils.plots import Annotator, colors, save_one_box
+
+from yolov5.models.common import DetectMultiBackend
+
 import constants
 
 
@@ -12,6 +20,8 @@ class ObjectsDetector:
         self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
         self.ln = self.net.getLayerNames()
         self.ln = [self.ln[i - 1] for i in self.net.getUnconnectedOutLayers()]
+
+        self.yolov5 = DetectMultiBackend('yolov5n.pt')
 
     """
     finds the bonding box with the highest probability with a person inside it [x, y, w, h]

@@ -1,6 +1,6 @@
 from Drone import Drone
 import cv2
-import keyboard
+
 
 if __name__ == "__main__":
     myDrone = Drone()

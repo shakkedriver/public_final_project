@@ -1,3 +1,6 @@
 [submodule "Yolov5_DeepSort_OSNet"]
 	path = Yolov5_DeepSort_OSNet
 	url = https://github.com/mikel-brostrom/Yolov5_DeepSort_OSNet.git
+[submodule "yolov5"]
+	path = yolov5
+	url = https://github.com/ultralytics/yolov5.git
